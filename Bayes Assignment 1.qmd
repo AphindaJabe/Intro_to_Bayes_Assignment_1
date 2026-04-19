@@ -1,0 +1,157 @@
+---
+title: "Bayesian Assignment 1"
+author: "Aphinda Jabe"
+format: pdf
+editor: visual
+---
+
+## Quarto
+
+```{r}
+rm(list = ls())
+# Packages required
+require ( MASS )
+library(tidyverse)
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+
+# Load the Auto MPG dataset
+auto <- read.csv(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data",
+  header = FALSE,
+  sep = "",
+  col.names = c("mpg", "cylinders", "displacement", "horsepower",
+                "weight", "acceleration", "model_year", "origin", "car_name"),
+  na.strings = "?"
+)
+
+# Remove missing values
+auto <- na.omit(auto)
+
+# Response variable
+Y <- matrix(auto$mpg, ncol = 1)
+
+# Predictor variables
+Xpreds <- auto[, c("displacement", "horsepower", "weight", "acceleration")]
+
+# Design matrix (add intercept + standardise predictors)
+X <- as.matrix(cbind(1, scale(Xpreds)))
+
+# Sample size
+n <- nrow(X)
+
+```
+
+# Gibbs Sampling
+
+```{r}
+gibbs <- function(y,x,n_iter){ 
+  k = ncol(x)
+  
+  # Priors
+  beta_til = rep(0,k)
+  M = diag(k)
+  a = 1
+  b = 1
+  
+  beta_samples = matrix(0, n_iter, k)
+  var_samples = numeric(n_iter)
+  
+  #Starting values
+  beta = rep(0, k)
+  var = 1
+  
+  for (i in 1:n_iter){ 
+    mu_beta <- solve(M + t(x)%*%x)%*%(t(x)%*%y + M%*%beta_til)
+    
+    # Sampling the betas
+    beta <- MASS::mvrnorm(1, mu = mu_beta, Sigma = var * solve(M + t(x)%*%x))
+                          
+    #Sample from sigmasqrd
+    A2 <- t(y)%*%y + t(beta_til) %*% M %*% beta_til - t(mu_beta) %*% (M + t(x) %*%x) %*% mu_beta
+    
+    shape = a + n/2
+    rate = b + A2/2
+    
+    var = 1/rgamma(1, shape = shape, rate = rate)
+    
+    beta_samples[i,] = beta
+    var_samples[i]  = var
+  }
+    return(list(beta = beta_samples, sigma2 = var_samples))
+    
+  
+  }
+
+par_data = gibbs(Y, X, 50000)
+```
+
+```{r}
+samples <- par_data
+
+# Trace plots for beta
+par(mfrow = c(2, 2))  
+
+for (j in 1:ncol(samples$beta)) {
+  plot(samples$beta[, j], type = "l",
+       main = paste("Trace plot for beta", j),
+       ylab = "", xlab = "Iteration")
+}
+```
+
+The trace plots fluctuate around a stable mean and do not show any visible trends or drift over iterations. This suggests that the Markov chains have reached a stationary distribution. Therefore, we can conclude that the Gibbs sampler appears to have converged.
+
+```{r}
+# OLS estimates
+ols <- solve(t(X) %*% X) %*% t(X) %*% Y
+
+# Posterior means
+post_means <- colMeans(par_data$beta)
+
+par(mfrow = c(2,3))  # adjust depending on number of betas
+
+for (j in 1:ncol(par_data$beta)) {
+  
+  dens <- density(par_data$beta[,j])
+  plot(dens, main = paste("Beta", j), xlab = "")
+  
+  # Posterior mean
+  abline(v = post_means[j], lty = 1, col = "red")
+  
+  # OLS estimate
+  abline(v = ols[j], lty = 2, col = "blue")
+}
+```
+
+The posterior densities are approximately symmetric and unimodal. The posterior means lie close to the OLS estimates.
+
+```{r}
+par(mfrow = c(2,3))
+
+for (j in 1:ncol(par_data$beta)) {
+  
+  dens <- density(par_data$beta[,j])
+  plot(dens, main = paste("Beta", j), xlab = "")
+  
+  # Credible interval
+  ci <- quantile(par_data$beta[,j], c(0.025, 0.975))
+  abline(v = ci, lty = 1)
+  
+  # OLS confidence interval
+  residuals <- Y - X %*% ols
+  sigma2_hat <- sum(residuals^2) / (nrow(X) - ncol(X))
+  var_beta <- sigma2_hat * solve(t(X) %*% X)
+  se <- sqrt(diag(var_beta))
+  
+  ci_ols <- c(ols[j] - 1.96*se[j], ols[j] + 1.96*se[j])
+  abline(v = ci_ols, lty = 2)
+}
+```
+
+```{r}
+
+```
