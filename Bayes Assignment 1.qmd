@@ -1,11 +1,9 @@
 ---
 title: "Bayesian Assignment 1"
-author: "Aphinda Jabe"
+author: "Aphinda Jabe, Nandi Malinga, Shantel Mogowane"
 format: pdf
 editor: visual
 ---
-
-## Quarto
 
 ```{r}
 rm(list = ls())
@@ -13,8 +11,6 @@ rm(list = ls())
 require ( MASS )
 library(tidyverse)
 ```
-
-You can add options to executable code like this
 
 ```{r}
 #| echo: false
@@ -46,17 +42,17 @@ n <- nrow(X)
 
 ```
 
-# Gibbs Sampling
+# Question 1: Gibbs Sampling
 
+## a) derivation
+
+## b) creating function for posterior samples
 ```{r}
-gibbs <- function(y,x,n_iter){ 
+gibbs <- function(y,x,n_iter, M, beta_til, a, b){ 
+  n = nrow(x)
   k = ncol(x)
   
-  # Priors
-  beta_til = rep(0,k)
-  M = diag(k)
-  a = 1
-  b = 1
+  beta_til = as.matrix(beta_til)
   
   beta_samples = matrix(0, n_iter, k)
   var_samples = numeric(n_iter)
@@ -83,29 +79,47 @@ gibbs <- function(y,x,n_iter){
     var_samples[i]  = var
   }
     return(list(beta = beta_samples, sigma2 = var_samples))
-    
-  
   }
-
-par_data = gibbs(Y, X, 50000)
 ```
 
+## c) generate 50000 samples
 ```{r}
+set.seed(123)
+
+# Priors
+k = ncol(X)
+beta_til = rep(0,k)
+M = diag(k)
+a = 1
+b = 1
+
+par_data = gibbs(Y, X, 50000, M, beta_til, a = 1, b = 1)
+```
+
+### i. trace plots for each regression coefficient
+``` {r}
 samples <- par_data
+
+ylabs <- c("intercept estimate", "beta_1 estimate", "beta_2 estimate", "beta_3 estimate", "beta_4 estimate")
 
 # Trace plots for beta
 par(mfrow = c(2, 2))  
 
 for (j in 1:ncol(samples$beta)) {
   plot(samples$beta[, j], type = "l",
-       main = paste("Trace plot for beta", j),
-       ylab = "", xlab = "Iteration")
+       main = paste("Trace plot for beta", j-1),
+       ylab = ylabs[j],
+       xlab = "Iteration")
 }
 ```
 
 The trace plots fluctuate around a stable mean and do not show any visible trends or drift over iterations. This suggests that the Markov chains have reached a stationary distribution. Therefore, we can conclude that the Gibbs sampler appears to have converged.
 
+### ii. density plots
+
+#### i. posterior means and OLS estimates
 ```{r}
+
 # OLS estimates
 ols <- solve(t(X) %*% X) %*% t(X) %*% Y
 
@@ -117,7 +131,7 @@ par(mfrow = c(2,3))  # adjust depending on number of betas
 for (j in 1:ncol(par_data$beta)) {
   
   dens <- density(par_data$beta[,j])
-  plot(dens, main = paste("Beta", j), xlab = "")
+  plot(dens, main = paste("Beta", j-1), xlab = "")
   
   # Posterior mean
   abline(v = post_means[j], lty = 1, col = "red")
@@ -129,29 +143,74 @@ for (j in 1:ncol(par_data$beta)) {
 
 The posterior densities are approximately symmetric and unimodal. The posterior means lie close to the OLS estimates.
 
+#### ii. 95% credibility and confidence intervals
 ```{r}
 par(mfrow = c(2,3))
+
+# OLS confidence interval
+  residuals <- Y - X %*% ols
+  sigma2_hat <- sum(residuals^2) / (nrow(X) - ncol(X))
+  var_beta <- sigma2_hat * solve(t(X) %*% X)
+  se <- sqrt(diag(var_beta))
 
 for (j in 1:ncol(par_data$beta)) {
   
   dens <- density(par_data$beta[,j])
-  plot(dens, main = paste("Beta", j), xlab = "")
+  plot(dens, main = paste("Beta", j-1), xlab = "")
   
   # Credible interval
   ci <- quantile(par_data$beta[,j], c(0.025, 0.975))
   abline(v = ci, lty = 1)
   
-  # OLS confidence interval
-  residuals <- Y - X %*% ols
-  sigma2_hat <- sum(residuals^2) / (nrow(X) - ncol(X))
-  var_beta <- sigma2_hat * solve(t(X) %*% X)
-  se <- sqrt(diag(var_beta))
-  
   ci_ols <- c(ols[j] - 1.96*se[j], ols[j] + 1.96*se[j])
   abline(v = ci_ols, lty = 2)
 }
 ```
+ remember to discuss the difference!
+ 
+#### iii. variable importance by credibility intervals
 
+## d) informative prior
+```{r}
+# SAMPLING WITH INFORMATIVE PRIOR
+k = ncol(X)
+beta_til_inf = c(23, -3, -5, -5, 0)
+Minf = 10*diag(k) # X already has intercept!
+a = 1
+b = 1
+
+set.seed(123)
+par_inf <- gibbs(Y, X, 50000, Minf, beta_til_inf, a, b)
+
+# DENSITIES FROM INFORMATIVE PRIOR
+
+# OLS estimates
+ols <- solve(t(X) %*% X) %*% t(X) %*% Y
+
+# Posterior means
+post_means_inf <- colMeans(par_inf$beta)
+
+par(mfrow = c(2,3))  # adjust depending on number of betas
+
+for (j in 1:ncol(par_inf$beta)) {
+  
+  dens <- density(par_inf$beta[,j])
+  plot(dens, main = paste("Beta", j-1), xlab = "")
+  
+  # Posterior mean
+  abline(v = post_means_inf[j], lty = 1, col = "red")
+  
+  # OLS estimate
+  abline(v = ols[j], lty = 2, col = "blue")
+}
+```
+1. compare posteriors from vague and informative
+2. how does prior affect posterior?
+3. how does sample size affect posterior?
+4. what happens if we only use a subset of the total data?
+
+
+# Question 2
 ```{r}
 #### Required Functions ####
 
@@ -204,16 +263,24 @@ generate_fisherman <- function(grid_size){
   
   return(true_grid)
 }
+```
 
-###Question b abd c
-grid_size <- 20
+
+## b) Simulate bayesian search
+``` {r}
+# BAYESIAN SIMULATION
+set.seed(123)
+
+search_size <- 20
 nsims <- 10000
 
-theta <- generate_lost(grid_size, nsims)
-true_grid <- generate_fisherman(grid_size)
+theta <- generate_lost(search_size, nsims)
+true_grid <- generate_fisherman(search_size)
 
 # Detection probabilities (example: uniform)
-p <- matrix(0.6, grid_size, grid_size)
+# p <- matrix(0.6, grid_size, grid_size)
+unifs <- runif(search_size^2, min = 0.6, max = 0.9)
+p <- matrix(unifs, ncol = search_size)
 
 time <- 0
 found <- FALSE
@@ -244,11 +311,7 @@ while(!found){
   
   # Record probability of true cell
   true_prob_track <- c(true_prob_track, theta[true_loc[1], true_loc[2]])
-  
-  # Save heatmap states (first 4 steps)
-  if(time %in% c(1,5,10,20)){
-    theta_history[[length(theta_history)+1]] <- theta
-  }
+
   
   # Step 4: update if not found
   if(!found){
@@ -259,17 +322,26 @@ while(!found){
     theta[i,j] <- ((1 - p[i,j]) * theta[i,j]) / denom
     
     # Update all other cells
-    for(a in 1:grid_size){
-      for(b in 1:grid_size){
+    for(a in 1:search_size){
+      for(b in 1:search_size){
         if(!(a == i & b == j)){
           theta[a,b] <- theta[a,b] / denom
         }
       }
     }
     
+      # Save heatmap states (first 4 steps)
+  # if(time %in% c(1,5,10,20)){
+  if(time %in% c(1,2,3,4)){
+    theta_history[[length(theta_history)+1]] <- theta
+  }
+    
   }
 }
+```
 
+### i. heatmaps of occurrence probability
+``` {r}
 #========
 #  i
 #=========
@@ -283,10 +355,18 @@ plot_heatmap <- function(mat, title){
 }
 
 plot_heatmap(theta_history[[1]], "Step 1")
-plot_heatmap(theta_history[[2]], "Step 5")
-plot_heatmap(theta_history[[3]], "Step 10")
-plot_heatmap(theta_history[[4]], "Step 20")
+plot_heatmap(theta_history[[2]], "Step 2")
+plot_heatmap(theta_history[[3]], "Step 3")
+plot_heatmap(theta_history[[4]], "Step 4")
 
+# plot_heatmap(theta_history[[1]], "Step 1")
+# plot_heatmap(theta_history[[2]], "Step 5")
+# plot_heatmap(theta_history[[3]], "Step 10")
+# plot_heatmap(theta_history[[4]], "Step 20")
+```
+
+### ii. posterior probability of occurence
+``` {r}
 #=====
 #ii
 #======
@@ -297,55 +377,170 @@ plot(true_prob_track, type="l",
      main="Probability of True Cell Over Time")
 
 ```
-### Posterior conditional distributions (a)
 
-#### First derivation
 
-$$
-\begin{align*}p(\beta \mid \tau_1, \tau_2, X, Y) &\propto p(Y \mid X, \beta, \tau_1, \tau_2) \, p(\beta) \\\\\quad p(Y \mid X, \beta, \tau_1, \tau_2) &\propto \exp\left\{ -\frac{1}{2} \left[ \tau_1 (Y_1 - X_1\beta)^T (Y_1 - X_1\beta) + \tau_2 (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)\right] \right\} \\\\\quad p(\beta \mid \tau_1, \tau_2, X, Y) &\propto \exp\left\{ -\frac{1}{2} \left[ \beta^T T_0^{-1} \beta + \tau_1 (Y_1 - X_1\beta)^T (Y_1 - X_1\beta) + \tau_2 (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)\right] \right \} \\\\\quad &\propto \exp\left\{ -\frac{1}{2} \left[\beta^T \left( \tau_1 X_1^T X_1 + \tau_2 X_2^T X_2 + T_0^{-1} \right) \beta - 2\beta^T \left( \tau_1 X_1^T Y_1 + \tau_2 X_2^T Y_2 \right)\right] \right\} \\\\\quad \beta \mid \tau_1, \tau_2, X, Y &\sim N(\mu_n, \Sigma_n) \\\quad \Sigma_n^{-1} &= \tau_1 X_1^T X_1 + \tau_2 X_2^T X_2 + T_0^{-1} \\\mu_n &= \Sigma_n \left( \tau_1 X_1^T Y_1 + \tau_2 X_2^T Y_2 \right)\end{align*}
-$$
+## c) comparing Bayesian and Naive strategy
+```{r}
+# UPDATING EQUATIONS
 
-#### Second derivation
+# new theta value for current cell
+theta_newi <- function(pi, theta_oldi) {
+  theta_newi <- ((1 - pi)*theta_oldi)/(1 - pi*theta_oldi)
+  return(theta_newi)
+}
 
-$$
-\begin{align*}p(\tau_1 \mid \beta, \tau_2, X, Y) &\propto p(Y_1 \mid X_1, \beta, \tau_1) \, p(\tau_1) \\\\\quad p(\tau_1) &\propto \tau_1^{a-1} \exp(-b\,\tau_1) \\\\\quad p(Y_1 \mid X_1, \beta, \tau_1) &\propto \tau_1^{n_1/2} \exp\left\{ -\frac{\tau_1}{2} (Y_1 - X_1\beta)^T (Y_1 - X_1\beta) \right\} \\ \\\\\quad p(\tau_1 \mid \beta, \tau_2, X, Y) &\propto \tau_1^{a-1} \exp(-b\,\tau_1) \times \tau_1^{n_1/2} \exp\left\{ -\frac{\tau_1}{2} \sum_{i=1}^{n_1} (y_{1i} - x_{1i}^T\beta)^2 \right\} \\&\propto \tau_1^{a + \frac{n_{1}}{2} - 1} \exp\left\{ -\tau_1 \left[ b + \frac{1}{2} \sum_{i=1}^{n_1} (y_{1i} - x_{1i}^T\beta)^2 \right] \right\} \\\\\quad \tau_1 \mid \beta, \tau_2, X, Y &\sim \left( a + \frac{n_1}{2}, \; b + \frac{1}{2} \sum_{i=1}^{n_1} (y_{1i} - x_{1i}^T\beta)^2 \right)\end{align*}
-$$
+# new theta value for all other cells
+theta_newj <- function(pi, theta_oldi, theta_oldj) {
+  theta_newj <- theta_oldj/(1 - pi*theta_oldi)
+  return(theta_newj)
+}
+```
 
-#### Third derivation
+### i. 100 simulations each
+```{r}
+iter <- 100
 
-\begin{align*}p(\tau_2 \mid \tau_1, \beta, X, Y)&\propto p(Y_2 \mid X_2, \beta, \tau_2) \, p(\tau_2 \mid \tau_1) \\\\(\tau_2 \mid \tau_1) &\propto \tau_2^{a-1} \exp(-b\,\tau_2) \, \mathbb{I}(0 < \tau_2 < \tau_1) \\\\(Y_2 \mid X_2, \beta, \tau_2)&\propto \tau_2^{n_2/2} \exp\left\{ -\frac{\tau_2}{2} (Y_2 - X_2\beta)^T (Y_2 - X_2\beta) \right\} \\\\(\tau_2 \mid \tau_1, \beta, X, Y)&\propto \tau_2^{a + n_2/2 - 1} \exp\left\{ -\tau_2 \left[ b + \frac{1}{2} (Y_2 - X_2\beta)^T (Y_2 - X_2\beta) \right] \right\} \mathbb{I}(0 < \tau_2 < \tau_1) \\\\\tau_2 \mid \tau_1, \beta, X, Y &\sim \left( a + \frac{n_2}{2}, \; b + \frac{1}{2} \sum_{i=1}^{n_2} (y_{2i} - x_{2i}^T\beta)^2 \right) \mathbb{I}(0 < \tau_2 < \tau_1)\end{align*}
-$$
+# BAYESIAN 100 SIMULATIONS
+set.seed(123)
+bayes_results <- numeric(iter)
 
-### Sampling (b)
+for (i in 1:iter) {
+  
+  # prior probability distributions (before search begins)
+  theta <- generate_lost(search_size, nsims)
+  
+  # true location of fisherman 
+  Y <- generate_fisherman(search_size)
+  
+  # probabilities of detection given that he's in the cell
+  # p <- detect_pr (NANDI CODE!, p initialised earlier)
+  
+  # true detection (=1 if fisherman is detected, always 0 when Y is 0)
+  # Z <- matrix(rbinom(search_size^2, size = 1, prob = Y*p), nrow = search_size, ncol = search_size)
+  
+  
+  # cell with highest probability of fisherman (before search)
+  index <- which(theta == max(theta), arr.ind = TRUE)[1, ]
+  row <- index[1]
+  col <- index[2]
+  
+  # indexes searched
+  # searched <- index
+  
+  # iterators
+  steps <- 0 # same as hours elapsed
+  
 
-$$
-\begin{align*}p(\beta, \tau_1, \tau_2 \mid X, Y)&\propto p(Y \mid X, \beta, \tau_1, \tau_2) \, p(\beta) \, p(\tau_1, \tau_2) \\\\(Y \mid X, \beta, \tau_1, \tau_2)&\propto \tau_1^{n_1/2} \tau_2^{(n-n_1)/2}\exp\left\{ -\frac{1}{2} \left[\tau_1 (Y_1 - X_1\beta)^T (Y_1 - X_1\beta)+ \tau_2 (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)\right] \right\} \\\\p(\beta) &\propto \exp\left\{ -\frac{1}{2} \beta^T T_0^{-1} \beta \right\} \\\\p(\tau_1, \tau_2) &\propto \tau_1^{a-1} \tau_2^{a-1} \exp\left\{ -b(\tau_1 + \tau_2) \right\} \mathbb{I}(0 < \tau_2 < \tau_1) \\\\(\beta, \tau_1, \tau_2 \mid X, Y)&\propto \tau_1^{a + n_1/2 - 1} \tau_2^{a + (n-n_1)/2 - 1} \\&\quad \times \exp\left\{ -\frac{1}{2}\beta^T T_0^{-1} \beta- \frac{\tau_1}{2} (Y_1 - X_1\beta)^T (Y_1 - X_1\beta)- \frac{\tau_2}{2} (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)- b(\tau_1 + \tau_2) \right\} \\&\quad \times \mathbb{I}(0 < \tau_2 < \tau_1)\end{align*}
-$$
+  while (Y[row, col] != 1) {
+    p_i <- p[row, col]
+    old_i <- theta[row, col]
+    
+    # Z (was it detected? = 1 if yes (Y = 1))
+    Z_i <- rbinom(1, size = 1, prob = Y[row, col]*p_i)
+    
+    current <- matrix(TRUE, nrow = search_size, ncol = search_size)
+    current[row, col] <- FALSE
+    
+    theta[current] <- theta_newj(p_i, old_i, theta[current])
+    
+    theta[row, col] <- theta_newi(p_i, old_i)
+    
+    steps <- steps + 1
+    #hours <- hours + 1
+    #searched <- rbind(searched, index)
+    
+    index <- which(theta == max(theta), arr.ind = TRUE)[1, ]
+    row <- index[1]
+    col <- index[2]
+  }
+  
+  bayes_results[i] <- steps
+}
 
-```{r, fig.show='hide'}
-# Packages required
-require(MASS)
-# Load the Auto MPG dataset
-auto <-read.csv(
-  "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data",
-  header = FALSE, sep = "",
-  col.names = c( "mpg" , "cylinders" , "displacement" , "horsepower" ,
-                 "weight" , "acceleration" , "model_year" , "origin" , "car_name" ),
-  na.strings = "?"
-)
-auto <-na.omit(auto)
-Y <-matrix(auto$mpg, ncol = 1)
-Xpreds <-auto[, c( "displacement" , "horsepower" , "weight" , "acceleration" )]
-X <-as.matrix(cbind(1, scale(Xpreds)))
-n <-nrow(X)
+cat("Average number of hours:", mean(bayes_results), "\n")
+```
 
-#### Required Functions ####
 
-library(ggplot2)
-library(MASS)
+```{r}
+# NAIVE 100 SIMULATIONS
 
-# Contaminate the data with outliers
-set.seed(12)
+set.seed(123)
+naive_results <- numeric(iter)
+
+for (i in 1:iter) {
+  
+  # prior probability distributions (before search begins)
+  theta <- generate_lost(search_size, nsims)
+  
+  # true location of fisherman 
+  Y <- generate_fisherman(search_size)
+  
+  # probabilities of detection given that he's in the cell
+  # p <- detect_pr
+  
+  # true detection (=1 if fisherman is detected, always 0 when Y is 0)
+  # Z <- matrix(rbinom(search_size^2, size = 1, prob = Y*p), nrow = search_size, ncol = search_size)
+  
+  # cell with highest probability of fisherman (before search)
+  # row_n <- sample(1:search_size, size = 1)
+  # col_n <- sample(1:search_size, size = 1)
+  # index_n <- c(row_n, col_n)
+  
+  cell_order <- sample(search_size^2)
+  
+  # iterators
+  steps <- 0
+  step_num <- 1
+  
+  # indexes
+  ind_linear <- cell_order[step_num]
+  index_n <- arrayInd(ind_linear, .dim = c(search_size, search_size))
+  row_n <- index_n[1]
+  col_n <- index_n[2]
+  
+  
+  while (Y[row_n, col_n] != 1) {
+    p_i <- p[row_n, col_n]
+    old_i <- theta[row_n, col_n]
+    
+    # Z (was it detected? = 1 if yes (Y = 1))
+    Z_i <- rbinom(1, size = 1, prob = Y[row_n, col_n]*p_i)
+    
+    current <- matrix(TRUE, nrow = search_size, ncol = search_size)
+    current[row_n, col_n] <- FALSE
+    
+    theta[current] <- theta_newj(p_i, old_i, theta[current])
+    theta[row_n, col_n] <- theta_newi(p_i, old_i)
+    
+    steps <- steps + 1
+    step_num <- step_num + 1
+    
+    # hours <- hours + 1
+    # searched <- rbind(searched, index_n)
+    
+    # next cell
+    ind_linear <- cell_order[step_num]
+    row_n <- ((ind_linear - 1) %% search_size) + 1
+    col_n <- ((ind_linear - 1) %/% search_size) + 1
+    
+    # row_n <- sample(1:search_size, size = 1)
+    # col_n <- sample(1:search_size, size = 1)
+    # index_n <- c(row_n, col_n)
+  }
+  
+  naive_results[i] <- steps
+}
+
+cat("Average number of hours:", mean(naive_results), "\n")
+```
+
+# Question 3
+
+## a) derivation for conditional posterior distributions
+
+## b) Code for samples
+```{r}
+set.seed(123)
 n1 <-350 # Number of 'standard' observations
 n2 <-n- n1 # Number of outliers
 outlier.idx <-(n1 + 1):n # Index set I2
@@ -364,13 +559,17 @@ b1 <- 0.1
 a2 <- 0.1
 b2 <- 0.1
 T_0 <- diag(0.001, ncol(X1))
+```
 
+## c) posterior samples
+
+``` {r}
 iterations <- 70000
 betas <- matrix(0, iterations, ncol(X1))
 tau1s <- tau2s <- numeric(iterations)
 
 tau1 <- 1
-tau2 <- 0.5
+tau2 <- 1
 
 for (i in 1:iterations) {
   
@@ -382,16 +581,17 @@ for (i in 1:iterations) {
   tau1 <- rgamma(1, a1 + n1/2, b1 + 0.5*rss1)
   
   rss2 <- sum((y2 - X2 %*% beta)^2)
-  repeat {tau2_temp <- rgamma(1, shape = a2 + n2/2, rate = b2 + 0.5*rss2)
-  if (tau2_temp <- tau1) break}
-  tau2 <- tau2_temp
+  tau2 <- rgamma(1, a2 + n2/2, b2 + 0.5*rss2)
   
   betas[i,] <- beta
   tau1s[i] <- tau1
   tau2s[i] <- tau2
   
 }
+```
 
+### i. trace plots
+``` {r}
 betas <- betas[(0.2 * iterations + 1):iterations,]
 tau1s <- tau1s[(0.2 * iterations + 1):iterations]
 tau2s <- tau2s[(0.2 * iterations + 1):iterations]
@@ -402,6 +602,3 @@ plot(tau1s, type = "l")
 plot(tau2s, type = "l")
 ```
 
-### Trace plots (c(i))
-
-![](plot){fig-align="center" width="100%"}
