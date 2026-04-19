@@ -297,3 +297,111 @@ plot(true_prob_track, type="l",
      main="Probability of True Cell Over Time")
 
 ```
+### Posterior conditional distributions (a)
+
+#### First derivation
+
+$$
+\begin{align*}p(\beta \mid \tau_1, \tau_2, X, Y) &\propto p(Y \mid X, \beta, \tau_1, \tau_2) \, p(\beta) \\\\\quad p(Y \mid X, \beta, \tau_1, \tau_2) &\propto \exp\left\{ -\frac{1}{2} \left[ \tau_1 (Y_1 - X_1\beta)^T (Y_1 - X_1\beta) + \tau_2 (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)\right] \right\} \\\\\quad p(\beta \mid \tau_1, \tau_2, X, Y) &\propto \exp\left\{ -\frac{1}{2} \left[ \beta^T T_0^{-1} \beta + \tau_1 (Y_1 - X_1\beta)^T (Y_1 - X_1\beta) + \tau_2 (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)\right] \right \} \\\\\quad &\propto \exp\left\{ -\frac{1}{2} \left[\beta^T \left( \tau_1 X_1^T X_1 + \tau_2 X_2^T X_2 + T_0^{-1} \right) \beta - 2\beta^T \left( \tau_1 X_1^T Y_1 + \tau_2 X_2^T Y_2 \right)\right] \right\} \\\\\quad \beta \mid \tau_1, \tau_2, X, Y &\sim N(\mu_n, \Sigma_n) \\\quad \Sigma_n^{-1} &= \tau_1 X_1^T X_1 + \tau_2 X_2^T X_2 + T_0^{-1} \\\mu_n &= \Sigma_n \left( \tau_1 X_1^T Y_1 + \tau_2 X_2^T Y_2 \right)\end{align*}
+$$
+
+#### Second derivation
+
+$$
+\begin{align*}p(\tau_1 \mid \beta, \tau_2, X, Y) &\propto p(Y_1 \mid X_1, \beta, \tau_1) \, p(\tau_1) \\\\\quad p(\tau_1) &\propto \tau_1^{a-1} \exp(-b\,\tau_1) \\\\\quad p(Y_1 \mid X_1, \beta, \tau_1) &\propto \tau_1^{n_1/2} \exp\left\{ -\frac{\tau_1}{2} (Y_1 - X_1\beta)^T (Y_1 - X_1\beta) \right\} \\ \\\\\quad p(\tau_1 \mid \beta, \tau_2, X, Y) &\propto \tau_1^{a-1} \exp(-b\,\tau_1) \times \tau_1^{n_1/2} \exp\left\{ -\frac{\tau_1}{2} \sum_{i=1}^{n_1} (y_{1i} - x_{1i}^T\beta)^2 \right\} \\&\propto \tau_1^{a + \frac{n_{1}}{2} - 1} \exp\left\{ -\tau_1 \left[ b + \frac{1}{2} \sum_{i=1}^{n_1} (y_{1i} - x_{1i}^T\beta)^2 \right] \right\} \\\\\quad \tau_1 \mid \beta, \tau_2, X, Y &\sim \left( a + \frac{n_1}{2}, \; b + \frac{1}{2} \sum_{i=1}^{n_1} (y_{1i} - x_{1i}^T\beta)^2 \right)\end{align*}
+$$
+
+#### Third derivation
+
+\begin{align*}p(\tau_2 \mid \tau_1, \beta, X, Y)&\propto p(Y_2 \mid X_2, \beta, \tau_2) \, p(\tau_2 \mid \tau_1) \\\\(\tau_2 \mid \tau_1) &\propto \tau_2^{a-1} \exp(-b\,\tau_2) \, \mathbb{I}(0 < \tau_2 < \tau_1) \\\\(Y_2 \mid X_2, \beta, \tau_2)&\propto \tau_2^{n_2/2} \exp\left\{ -\frac{\tau_2}{2} (Y_2 - X_2\beta)^T (Y_2 - X_2\beta) \right\} \\\\(\tau_2 \mid \tau_1, \beta, X, Y)&\propto \tau_2^{a + n_2/2 - 1} \exp\left\{ -\tau_2 \left[ b + \frac{1}{2} (Y_2 - X_2\beta)^T (Y_2 - X_2\beta) \right] \right\} \mathbb{I}(0 < \tau_2 < \tau_1) \\\\\tau_2 \mid \tau_1, \beta, X, Y &\sim \left( a + \frac{n_2}{2}, \; b + \frac{1}{2} \sum_{i=1}^{n_2} (y_{2i} - x_{2i}^T\beta)^2 \right) \mathbb{I}(0 < \tau_2 < \tau_1)\end{align*}
+$$
+
+### Sampling (b)
+
+$$
+\begin{align*}p(\beta, \tau_1, \tau_2 \mid X, Y)&\propto p(Y \mid X, \beta, \tau_1, \tau_2) \, p(\beta) \, p(\tau_1, \tau_2) \\\\(Y \mid X, \beta, \tau_1, \tau_2)&\propto \tau_1^{n_1/2} \tau_2^{(n-n_1)/2}\exp\left\{ -\frac{1}{2} \left[\tau_1 (Y_1 - X_1\beta)^T (Y_1 - X_1\beta)+ \tau_2 (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)\right] \right\} \\\\p(\beta) &\propto \exp\left\{ -\frac{1}{2} \beta^T T_0^{-1} \beta \right\} \\\\p(\tau_1, \tau_2) &\propto \tau_1^{a-1} \tau_2^{a-1} \exp\left\{ -b(\tau_1 + \tau_2) \right\} \mathbb{I}(0 < \tau_2 < \tau_1) \\\\(\beta, \tau_1, \tau_2 \mid X, Y)&\propto \tau_1^{a + n_1/2 - 1} \tau_2^{a + (n-n_1)/2 - 1} \\&\quad \times \exp\left\{ -\frac{1}{2}\beta^T T_0^{-1} \beta- \frac{\tau_1}{2} (Y_1 - X_1\beta)^T (Y_1 - X_1\beta)- \frac{\tau_2}{2} (Y_2 - X_2\beta)^T (Y_2 - X_2\beta)- b(\tau_1 + \tau_2) \right\} \\&\quad \times \mathbb{I}(0 < \tau_2 < \tau_1)\end{align*}
+$$
+
+```{r, fig.show='hide'}
+# Packages required
+require(MASS)
+# Load the Auto MPG dataset
+auto <-read.csv(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data",
+  header = FALSE, sep = "",
+  col.names = c( "mpg" , "cylinders" , "displacement" , "horsepower" ,
+                 "weight" , "acceleration" , "model_year" , "origin" , "car_name" ),
+  na.strings = "?"
+)
+auto <-na.omit(auto)
+Y <-matrix(auto$mpg, ncol = 1)
+Xpreds <-auto[, c( "displacement" , "horsepower" , "weight" , "acceleration" )]
+X <-as.matrix(cbind(1, scale(Xpreds)))
+n <-nrow(X)
+
+#### Required Functions ####
+
+library(ggplot2)
+library(MASS)
+
+# Contaminate the data with outliers
+set.seed(12)
+n1 <-350 # Number of 'standard' observations
+n2 <-n- n1 # Number of outliers
+outlier.idx <-(n1 + 1):n # Index set I2
+# Inflate the response for the outlier observations
+Y.contaminated <-Y
+Y.contaminated[outlier.idx] <-Y[outlier.idx] +
+  rnorm(n2, mean = 0, sd = 15)
+
+X1 <- X[1:n1,]
+X2 <- X[(n1+1):n,]
+y1 <- Y.contaminated[1:n1,]
+y2 <- Y.contaminated[outlier.idx]
+
+a1 <- 0.1
+b1 <- 0.1
+a2 <- 0.1
+b2 <- 0.1
+T_0 <- diag(0.001, ncol(X1))
+
+iterations <- 70000
+betas <- matrix(0, iterations, ncol(X1))
+tau1s <- tau2s <- numeric(iterations)
+
+tau1 <- 1
+tau2 <- 0.5
+
+for (i in 1:iterations) {
+  
+  post_variance <- solve(tau1 * crossprod(X1) + tau2 * crossprod(X2) + solve(T_0))
+  mu <- post_variance %*% (tau1 * t(X1) %*% y1 + tau2 * t(X2) %*% y2)
+  beta <- mvrnorm(1, mu, post_variance)
+  
+  rss1 <- sum((y1 - X1 %*% beta)^2)
+  tau1 <- rgamma(1, a1 + n1/2, b1 + 0.5*rss1)
+  
+  rss2 <- sum((y2 - X2 %*% beta)^2)
+  repeat {tau2_temp <- rgamma(1, shape = a2 + n2/2, rate = b2 + 0.5*rss2)
+  if (tau2_temp <- tau1) break}
+  tau2 <- tau2_temp
+  
+  betas[i,] <- beta
+  tau1s[i] <- tau1
+  tau2s[i] <- tau2
+  
+}
+
+betas <- betas[(0.2 * iterations + 1):iterations,]
+tau1s <- tau1s[(0.2 * iterations + 1):iterations]
+tau2s <- tau2s[(0.2 * iterations + 1):iterations]
+
+par(mfrow = c(1, 3))
+plot(betas[,1], type = "l")
+plot(tau1s, type = "l")
+plot(tau2s, type = "l")
+```
+
+### Trace plots (c(i))
+
+![](plot){fig-align="center" width="100%"}
