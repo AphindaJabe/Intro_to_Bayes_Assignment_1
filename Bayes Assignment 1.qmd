@@ -637,7 +637,8 @@ tau2s <- tau2s[(0.2 * iterations + 1):iterations]
 ## c) posterior samples
 
 ### i. trace plots
-```{r, echo = FALSE, fig.show='hide'}
+```{r, echo = FALSE}
+#| fig-cap: "Trace plots for beta, tau_1, tau_2 for assessment of convergence"
 par(mfrow = c(1, 3))
 plot(betas[,1], type = "l")
 plot(tau1s, type = "l")
