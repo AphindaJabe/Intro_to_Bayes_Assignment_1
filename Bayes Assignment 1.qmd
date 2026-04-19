@@ -153,5 +153,147 @@ for (j in 1:ncol(par_data$beta)) {
 ```
 
 ```{r}
+#### Required Functions ####
+
+library(ggplot2)
+library(MASS)
+
+#### Data Generating Functions ####
+
+generate_lost <- function(grid_size, nsims){
+  
+  # Function to generate the prior distribution for the 
+  # location of the lost fisherman
+  # Args: 
+  #       grid_size: the dimensions of the square search grid
+  #       nsims: number of samples to base the prior distribution on
+  
+  mu_vec  <- c(grid_size/2, grid_size/2)
+  sig_mat <- matrix(c(2, 1, 5, 5), 2,2)
+  
+  dat <- mvrnorm(nsims, mu_vec, sig_mat)
+  dat <- round(abs(dat))
+  
+  prior <- matrix(rep(0,grid_size^2), grid_size, grid_size)
+  for (i in 1:NROW(dat)){
+    
+    if (dat[i,1] < grid_size & dat[i,2] < grid_size){
+      prior[dat[i,1], dat[i,2]] <- prior[dat[i,1], dat[i,2]] + 1
+    }
+    
+  }
+  prior <- prior/sum(prior)
+  return(prior)
+}
+
+generate_fisherman <- function(grid_size){
+  
+  # Function to generate the true location of the lost fisherman.
+  # This should not effect the search decision in any way!! It is unkown
+  # to the search crew.
+  # Args: 
+  #       grid_size: the dimensions of the square search grid
+
+  
+  mu_vec  <- c(grid_size/2, grid_size/2)
+  sig_mat <- matrix(c(2, 1, 5, 5), 2,2)
+  
+  location  <- round(mvrnorm(1, mu_vec, sig_mat))
+  true_grid <- matrix(rep(0, grid_size^2), grid_size, grid_size)
+  true_grid[location[1], location[2]] <- 1
+  
+  return(true_grid)
+}
+
+###Question b abd c
+grid_size <- 20
+nsims <- 10000
+
+theta <- generate_lost(grid_size, nsims)
+true_grid <- generate_fisherman(grid_size)
+
+# Detection probabilities (example: uniform)
+p <- matrix(0.6, grid_size, grid_size)
+
+time <- 0
+found <- FALSE
+
+theta_history <- list()
+true_prob_track <- c()
+
+true_loc <- which(true_grid == 1, arr.ind = TRUE)
+
+while(!found){
+  
+  time <- time + 1
+  
+  # Step 1: compute detection probability
+  detect_prob <- theta * p
+  
+  # Step 2: choose best cell
+  idx <- which(detect_prob == max(detect_prob), arr.ind = TRUE)[1,]
+  i <- idx[1]
+  j <- idx[2]
+  
+  # Step 3: simulate detection
+  if(true_grid[i,j] == 1){
+    found <- rbinom(1,1,p[i,j]) == 1
+  } else {
+    found <- FALSE
+  }
+  
+  # Record probability of true cell
+  true_prob_track <- c(true_prob_track, theta[true_loc[1], true_loc[2]])
+  
+  # Save heatmap states (first 4 steps)
+  if(time %in% c(1,5,10,20)){
+    theta_history[[length(theta_history)+1]] <- theta
+  }
+  
+  # Step 4: update if not found
+  if(!found){
+    
+    denom <- 1 - p[i,j]*theta[i,j]
+    
+    # Update searched cell
+    theta[i,j] <- ((1 - p[i,j]) * theta[i,j]) / denom
+    
+    # Update all other cells
+    for(a in 1:grid_size){
+      for(b in 1:grid_size){
+        if(!(a == i & b == j)){
+          theta[a,b] <- theta[a,b] / denom
+        }
+      }
+    }
+    
+  }
+}
+
+#========
+#  i
+#=========
+plot_heatmap <- function(mat, title){
+  df <- reshape2::melt(mat)
+  ggplot(df, aes(Var1, Var2, fill=value)) +
+    geom_tile() +
+    scale_fill_viridis_c() +
+    ggtitle(title) +
+    theme_minimal()
+}
+
+plot_heatmap(theta_history[[1]], "Step 1")
+plot_heatmap(theta_history[[2]], "Step 5")
+plot_heatmap(theta_history[[3]], "Step 10")
+plot_heatmap(theta_history[[4]], "Step 20")
+
+#=====
+#ii
+#======
+
+plot(true_prob_track, type="l",
+     xlab="Search Step",
+     ylab="Posterior Probability",
+     main="Probability of True Cell Over Time")
 
 ```
