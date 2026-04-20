@@ -726,7 +726,7 @@ plot(tau2s, type = "l")
 ```
 The trace plots for $\beta_{i}'s, \tau_1, \tau_2$ show the chains fluctuating around a stable mean with no visible trends over the 50000 iterations (index). This suggests that the Gibbs sampler has reached a stationary distribution and achieved convergence.
 
-### ii. 
+### ii. Comparing the samples
 
 ```{r, echo=FALSE}
 beta_means1 <- colMeans(samples$beta)
