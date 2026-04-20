@@ -320,6 +320,7 @@ set.seed(123)
 
 search_size <- 20
 nsims <- 10000
+max_time = 100
 
 theta <- generate_lost(search_size, nsims)
 true_grid <- generate_fisherman(search_size)
@@ -336,7 +337,7 @@ theta_history <- list()
 true_prob_track <- c()
 
 true_loc <- which(true_grid == 1, arr.ind = TRUE)
-
+snap_points <- round(seq(1, max_time, length.out = 4))
 while(!found){
   
   time <- time + 1
@@ -395,22 +396,33 @@ while(!found){
 #=========
 plot_heatmap <- function(mat, title){
   df <- reshape2::melt(mat)
-  ggplot(df, aes(Var1, Var2, fill=value)) +
-    geom_tile() +
-    scale_fill_viridis_c() +
-    ggtitle(title) +
-    theme_minimal()
+  colnames(df) <- c("row", "col", "theta")
+
+  ggplot(df, aes(x = col, y = row, fill = theta)) +
+    geom_tile(color = "grey85", linewidth = 0.2) +
+    scale_fill_viridis_c(name = expression(theta[i])) +
+    coord_equal() +
+    scale_y_reverse() +
+    ggtitle(title) + 
+  
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid = element_blank(),
+         axis.text = element_blank(),  
+      axis.ticks = element_blank() 
+    )
 }
 
-plot_heatmap(theta_history[[1]], "Step 1")
-plot_heatmap(theta_history[[2]], "Step 2")
-plot_heatmap(theta_history[[3]], "Step 3")
+pdf("Heatmaps.pdf")
+(
+plot_heatmap(theta_history[[1]], "Step 1") +
+plot_heatmap(theta_history[[2]], "Step 2") +
+plot_heatmap(theta_history[[3]], "Step 3") +
 plot_heatmap(theta_history[[4]], "Step 4")
 
-# plot_heatmap(theta_history[[1]], "Step 1")
-# plot_heatmap(theta_history[[2]], "Step 5")
-# plot_heatmap(theta_history[[3]], "Step 10")
-# plot_heatmap(theta_history[[4]], "Step 20")
+)
+
+dev.off()
 ```
 
 ### ii. posterior probability of occurence
@@ -420,10 +432,23 @@ plot_heatmap(theta_history[[4]], "Step 4")
 #ii
 #======
 
-plot(true_prob_track, type="l",
-     xlab="Search Step",
-     ylab="Posterior Probability",
-     main="Probability of True Cell Over Time")
+df <- data.frame(
+  step = 1:length(true_prob_track),
+  prob = true_prob_track
+)
+
+pdf("Probability-Search.pdf")
+print(
+ggplot(df, aes(x = step, y = prob)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 1) +
+  labs(
+    x = "Search Step",
+    y = "Posterior Probability"
+  ) +
+  theme_minimal(base_size = 12)
+)
+dev.off()
 
 ```
 
