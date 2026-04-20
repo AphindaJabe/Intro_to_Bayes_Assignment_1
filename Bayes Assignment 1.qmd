@@ -163,6 +163,8 @@ The plots above indicate that the posterior densities are approximately symmetri
 #### ii. 95% credibility and confidence intervals
 
 ```{r}
+
+pdf("beta_intervals.pdf", width = 10, height = 6)
 par(mfrow = c(2,3))
 
 # OLS confidence interval
@@ -188,11 +190,18 @@ for (j in 1:ncol(par_data$beta)) {
        col = c("hotpink", "blue4"),
        lty = c(1, 2), cex = 0.85, bty = "n")
 }
+
+dev.off()
 ```
 
-remember to discuss the difference!
+A 95% credibility interval means that there is a 95% probability that the true parameter value falls within the interval, given the observed data and prior. On the other hand, a 95% confidence interval means that if we computed the interval over many samples, 95% of those intervals would contain the true parameter value. 
+
+From the plots above, the credibility and confidence intervals appear roughly similar across all parameter estimates. The greatest similarity is observed for the beta2 and beta4 estimates, where the confidence intervals are largely contained within the corresponding credibility intervals. The greatest disparity occurs for the intercept estimate, where the confidence interval is shifted to the right of the credibility interval. A similar, though smaller, shift to the right is observed for the beta1 estimate. For the beta3 estimate, the confidence interval is slightly to the left of the credibility interval. Overall, the general similarity between the credibility and confidence intervals further highlights that the prior is weak, and the posterior is highly driven by the data.
 
 #### iii. variable importance by credibility intervals
+The credibility intervals for the beta1 and beta4 estimates include 0, which suggests that displacement and acceleration may not be significant predictors of fuel efficiency. In contrast, the credibility intervals for the beta2 and beta3 estimates, corresponding to horsepower and weight, do not include 0, indicating that they are likely important predictors of fuel efficiency. 
+
+Some of these findings are unexpected. One would expected that a larger engine displacement would significantly reduce fuel efficiency, as larger engines usually consume more fuel. However, horsepower and weight being important predictors is expected, since heavier, more powerful vehicles would require more fuel, and are therefore less fuel efficient. ** maybe mention something about how acceleration and horsepower give similar information?
 
 ## d) informative prior
 
@@ -215,6 +224,7 @@ ols <- solve(t(X) %*% X) %*% t(X) %*% Y
 # Posterior means
 post_means_inf <- colMeans(par_inf$beta)
 
+pdf("densities_inf.pdf", width = 10, height = 6)
 par(mfrow = c(2,3))  # adjust depending on number of betas
 
 for (j in 1:ncol(par_inf$beta)) {
@@ -233,12 +243,18 @@ for (j in 1:ncol(par_inf$beta)) {
        col = c("red", "blue"),
        lty = c(1, 2), cex = 0.85, bty = "n")
 }
+dev.off()
 ```
 
-1.  compare posteriors from vague and informative
-2.  how does prior affect posterior?
-3.  how does sample size affect posterior?
-4.  what happens if we only use a subset of the total data?
+
+The posterior means and OLS estimates differ more under the informative prior than under the vague prior. For the intercept, the OLS and posterior are almost identical under the informative prior, but showed larger disparity under the vague prior. In contrast, the remaining estimates show large differences between these values under the informative prior than the vague prior. This overall disparity suggests that the prior has a stronger influence on the posterior relative to the likelihood, leading to posterior estimates closer to the prior mean. 
+
+
+In general, the choice of prior affects how much influence is given to the prior relative to the data in the posterior. An informative prior holds a greater weight in determining the posterior, leading to larger disparities between OLS estimates and posterior means. A vague prior has little effect, causing the posterior to be largely driven by the data. 
+
+As the sample size increases, the data contains more information, resulting in a more informative likelihood. This increases the influence of the data relative to the prior in determining the posterior, causing the posterior mean to converge toward the OLS estimate, which is based only on the data. 
+
+Using only a subset of the data reduces the amount of information available in the likelihood, causing the posterior to be driven more by the prior distribution, which leads to a greater difference in the OLS estimates and posterior means.
 
 # Question 2
 
