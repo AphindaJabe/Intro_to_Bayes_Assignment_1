@@ -727,3 +727,12 @@ plot(tau2s, type = "l")
 The trace plots for $\beta_{i}'s, \tau_1, \tau_2$ show the chains fluctuating around a stable mean with no visible trends over the 50000 iterations (index). This suggests that the Gibbs sampler has reached a stationary distribution and achieved convergence.
 
 ### ii. 
+
+```{r, echo=FALSE}
+beta_means1 <- colMeans(samples$beta)
+beta_means2 <- colMeans(betas)
+beta_sds1 <- apply(samples$beta, 2, sd)
+beta_sds2 <- apply(betas, 2, sd)
+```
+
+Comparing posterior samples shows all regression coefficients ($\beta_i's$) shifted substantially toward zero relative to those in Question 1, with $\beta_1$ moving from 23.386 to 0.016. Posterior standard deviations decreased by a factor of 7-22 across parameters, from 0.22 to 0.71 in the first question to approximately 0.032 in the current model, indicating much greater posterior precision.
