@@ -715,10 +715,15 @@ tau2s <- tau2s[(0.2 * iterations + 1):iterations]
 
 ```{r, echo = FALSE}
 #| fig-cap: "Trace plots for beta, tau_1, tau_2 for assessment of convergence"
-par(mfrow = c(1, 3))
+par(mfrow = c(2, 4))
 plot(betas[,1], type = "l")
+plot(betas[,2], type = "l")
+plot(betas[,3], type = "l")
+plot(betas[,4], type = "l")
+plot(betas[,5], type = "l")
 plot(tau1s, type = "l")
 plot(tau2s, type = "l")
 ```
+The trace plots for $\beta_{i}'s, \tau_1, \tau_2$ show the chains fluctuating around a stable mean with no visible trends over the 50000 iterations (index). This suggests that the Gibbs sampler has reached a stationary distribution and achieved convergence.
 
 ### ii. 
