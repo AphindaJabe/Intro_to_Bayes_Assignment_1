@@ -112,7 +112,7 @@ par(mfrow = c(2, 3))
 
 for (j in 1:ncol(samples$beta)) {
   plot(samples$beta[, j], type = "l",
-       main = paste("Trace plot for beta", j-1),
+       main = paste("Trace Plot of Posterior Samples for β", j-1),
        ylab = ylabs[j],
        xlab = "Iteration")
 }
@@ -136,12 +136,12 @@ post_means <- colMeans(par_data$beta)
 
 pdf("beta_densities.pdf", width = 10, height = 6)
 
-par(mfrow = c(2,3))  # adjust depending on number of betas
+par(mfrow = c(3, 2))  # adjust depending on number of betas
 
 for (j in 1:ncol(par_data$beta)) {
   
   dens <- density(par_data$beta[,j])
-  plot(dens, main = paste("Beta", j-1), xlab = "")
+  plot(dens, main = paste("Posterior Density of β", j-1), xlab = "")
   
   # Posterior mean
   abline(v = post_means[j], lty = 1, col = "red")
@@ -150,7 +150,7 @@ for (j in 1:ncol(par_data$beta)) {
   abline(v = ols[j], lty = 2, col = "purple")
   
   legend("bottomright",
-       legend = c("posterior", "OLS"),
+       legend = c("Posterior", "OLS"),
        col = c("red", "purple"),
        lty = c(1, 2), cex = 0.85, bty = "n")
 }
@@ -165,7 +165,7 @@ The plots above indicate that the posterior densities are approximately symmetri
 ```{r}
 
 pdf("beta_intervals.pdf", width = 10, height = 6)
-par(mfrow = c(2,3))
+par(mfrow = c(3, 2))
 
 # OLS confidence interval
   residuals <- Y - X %*% ols
@@ -176,7 +176,7 @@ par(mfrow = c(2,3))
 for (j in 1:ncol(par_data$beta)) {
   
   dens <- density(par_data$beta[,j])
-  plot(dens, main = paste("Beta", j-1), xlab = "")
+  plot(dens, main = paste("Posterior Density of β", j-1), xlab = "")
   
   # Credible interval
   ci <- quantile(par_data$beta[,j], c(0.025, 0.975))
@@ -194,14 +194,15 @@ for (j in 1:ncol(par_data$beta)) {
 dev.off()
 ```
 
-A 95% credibility interval means that there is a 95% probability that the true parameter value falls within the interval, given the observed data and prior. On the other hand, a 95% confidence interval means that if we computed the interval over many samples, 95% of those intervals would contain the true parameter value. 
+A 95% credibility interval means that there is a 95% probability that the true parameter value falls within the interval, given the observed data and prior. On the other hand, a 95% confidence interval means that if we computed the interval over many samples, 95% of those intervals would contain the true parameter value.
 
 From the plots above, the credibility and confidence intervals appear roughly similar across all parameter estimates. The greatest similarity is observed for the beta2 and beta4 estimates, where the confidence intervals are largely contained within the corresponding credibility intervals. The greatest disparity occurs for the intercept estimate, where the confidence interval is shifted to the right of the credibility interval. A similar, though smaller, shift to the right is observed for the beta1 estimate. For the beta3 estimate, the confidence interval is slightly to the left of the credibility interval. Overall, the general similarity between the credibility and confidence intervals further highlights that the prior is weak, and the posterior is highly driven by the data.
 
 #### iii. variable importance by credibility intervals
-The credibility intervals for the beta1 and beta4 estimates include 0, which suggests that displacement and acceleration may not be significant predictors of fuel efficiency. In contrast, the credibility intervals for the beta2 and beta3 estimates, corresponding to horsepower and weight, do not include 0, indicating that they are likely important predictors of fuel efficiency. 
 
-Some of these findings are unexpected. One would expected that a larger engine displacement would significantly reduce fuel efficiency, as larger engines usually consume more fuel. However, horsepower and weight being important predictors is expected, since heavier, more powerful vehicles would require more fuel, and are therefore less fuel efficient. ** maybe mention something about how acceleration and horsepower give similar information?
+The credibility intervals for the beta1 and beta4 estimates include 0, which suggests that displacement and acceleration may not be significant predictors of fuel efficiency. In contrast, the credibility intervals for the beta2 and beta3 estimates, corresponding to horsepower and weight, do not include 0, indicating that they are likely important predictors of fuel efficiency.
+
+Some of these findings are unexpected. One would expected that a larger engine displacement would significantly reduce fuel efficiency, as larger engines usually consume more fuel. However, horsepower and weight being important predictors is expected, since heavier, more powerful vehicles would require more fuel, and are therefore less fuel efficient. \*\* maybe mention something about how acceleration and horsepower give similar information?
 
 ## d) informative prior
 
@@ -225,12 +226,12 @@ ols <- solve(t(X) %*% X) %*% t(X) %*% Y
 post_means_inf <- colMeans(par_inf$beta)
 
 pdf("densities_inf.pdf", width = 10, height = 6)
-par(mfrow = c(2,3))  # adjust depending on number of betas
+par(mfrow = c(3, 2))  # adjust depending on number of betas
 
 for (j in 1:ncol(par_inf$beta)) {
   
   dens <- density(par_inf$beta[,j])
-  plot(dens, main = paste("Beta", j-1), xlab = "")
+  plot(dens, main = paste("Posterior Density of β", j-1), xlab = "")
   
   # Posterior mean
   abline(v = post_means_inf[j], lty = 1, col = "red")
@@ -239,20 +240,18 @@ for (j in 1:ncol(par_inf$beta)) {
   abline(v = ols[j], lty = 2, col = "blue")
   
   legend("bottomright",
-       legend = c("posterior", "OLS"),
+       legend = c("Posterior", "OLS"),
        col = c("red", "blue"),
        lty = c(1, 2), cex = 0.85, bty = "n")
 }
 dev.off()
 ```
 
+The posterior means and OLS estimates differ more under the informative prior than under the vague prior. For the intercept, the OLS and posterior are almost identical under the informative prior, but showed larger disparity under the vague prior. In contrast, the remaining estimates show large differences between these values under the informative prior than the vague prior. This overall disparity suggests that the prior has a stronger influence on the posterior relative to the likelihood, leading to posterior estimates closer to the prior mean.
 
-The posterior means and OLS estimates differ more under the informative prior than under the vague prior. For the intercept, the OLS and posterior are almost identical under the informative prior, but showed larger disparity under the vague prior. In contrast, the remaining estimates show large differences between these values under the informative prior than the vague prior. This overall disparity suggests that the prior has a stronger influence on the posterior relative to the likelihood, leading to posterior estimates closer to the prior mean. 
+In general, the choice of prior affects how much influence is given to the prior relative to the data in the posterior. An informative prior holds a greater weight in determining the posterior, leading to larger disparities between OLS estimates and posterior means. A vague prior has little effect, causing the posterior to be largely driven by the data.
 
-
-In general, the choice of prior affects how much influence is given to the prior relative to the data in the posterior. An informative prior holds a greater weight in determining the posterior, leading to larger disparities between OLS estimates and posterior means. A vague prior has little effect, causing the posterior to be largely driven by the data. 
-
-As the sample size increases, the data contains more information, resulting in a more informative likelihood. This increases the influence of the data relative to the prior in determining the posterior, causing the posterior mean to converge toward the OLS estimate, which is based only on the data. 
+As the sample size increases, the data contains more information, resulting in a more informative likelihood. This increases the influence of the data relative to the prior in determining the posterior, causing the posterior mean to converge toward the OLS estimate, which is based only on the data.
 
 Using only a subset of the data reduces the amount of information available in the likelihood, causing the posterior to be driven more by the prior distribution, which leads to a greater difference in the OLS estimates and posterior means.
 
@@ -320,7 +319,6 @@ set.seed(123)
 
 search_size <- 20
 nsims <- 10000
-max_time = 100
 
 theta <- generate_lost(search_size, nsims)
 true_grid <- generate_fisherman(search_size)
@@ -337,7 +335,7 @@ theta_history <- list()
 true_prob_track <- c()
 
 true_loc <- which(true_grid == 1, arr.ind = TRUE)
-snap_points <- round(seq(1, max_time, length.out = 4))
+
 while(!found){
   
   time <- time + 1
@@ -396,33 +394,22 @@ while(!found){
 #=========
 plot_heatmap <- function(mat, title){
   df <- reshape2::melt(mat)
-  colnames(df) <- c("row", "col", "theta")
-
-  ggplot(df, aes(x = col, y = row, fill = theta)) +
-    geom_tile(color = "grey85", linewidth = 0.2) +
-    scale_fill_viridis_c(name = expression(theta[i])) +
-    coord_equal() +
-    scale_y_reverse() +
-    ggtitle(title) + 
-  
-    theme_minimal(base_size = 12) +
-    theme(
-      panel.grid = element_blank(),
-         axis.text = element_blank(),  
-      axis.ticks = element_blank() 
-    )
+  ggplot(df, aes(Var1, Var2, fill=value)) +
+    geom_tile() +
+    scale_fill_viridis_c() +
+    ggtitle(title) +
+    theme_minimal()
 }
 
-pdf("Heatmaps.pdf")
-(
-plot_heatmap(theta_history[[1]], "Step 1") +
-plot_heatmap(theta_history[[2]], "Step 2") +
-plot_heatmap(theta_history[[3]], "Step 3") +
+plot_heatmap(theta_history[[1]], "Step 1")
+plot_heatmap(theta_history[[2]], "Step 2")
+plot_heatmap(theta_history[[3]], "Step 3")
 plot_heatmap(theta_history[[4]], "Step 4")
 
-)
-
-dev.off()
+# plot_heatmap(theta_history[[1]], "Step 1")
+# plot_heatmap(theta_history[[2]], "Step 5")
+# plot_heatmap(theta_history[[3]], "Step 10")
+# plot_heatmap(theta_history[[4]], "Step 20")
 ```
 
 ### ii. posterior probability of occurence
@@ -432,23 +419,10 @@ dev.off()
 #ii
 #======
 
-df <- data.frame(
-  step = 1:length(true_prob_track),
-  prob = true_prob_track
-)
-
-pdf("Probability-Search.pdf")
-print(
-ggplot(df, aes(x = step, y = prob)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 1) +
-  labs(
-    x = "Search Step",
-    y = "Posterior Probability"
-  ) +
-  theme_minimal(base_size = 12)
-)
-dev.off()
+plot(true_prob_track, type="l",
+     xlab="Search Step",
+     ylab="Posterior Probability",
+     main="Probability of True Cell Over Time")
 
 ```
 
@@ -740,15 +714,34 @@ tau2s <- tau2s[(0.2 * iterations + 1):iterations]
 
 ```{r, echo = FALSE}
 #| fig-cap: "Trace plots for beta, tau_1, tau_2 for assessment of convergence"
-par(mfrow = c(2, 4))
-plot(betas[,1], type = "l")
-plot(betas[,2], type = "l")
-plot(betas[,3], type = "l")
-plot(betas[,4], type = "l")
-plot(betas[,5], type = "l")
-plot(tau1s, type = "l")
-plot(tau2s, type = "l")
+
+pdf("trace_plots2.pdf", width = 10, height = 6)
+par(mfrow = c(3, 2))
+plot(betas[,1], type = "l", 
+     main = "Trace Plot of Posterior Samples for β0")
+plot(betas[,2], type = "l", 
+     main = "Trace Plot of Posterior Samples for β1")
+
+plot(betas[,3], type = "l", 
+     main = "Trace Plot of Posterior Samples for β2")
+
+plot(betas[,4], type = "l", 
+     main = "Trace Plot of Posterior Samples for β3")
+
+plot(betas[,5], type = "l", 
+     main = "Trace Plot of Posterior Samples for β4")
+dev.off()
+
+
+pdf("taus_plots.pdf", width = 10, height = 3)
+par(mfrow = c(1, 2))
+plot(tau1s, type = "l", main = "Trace Plot of Posterior Samples for τ1")
+
+plot(tau2s, type = "l", main = "Trace Plot of Posterior Samples for τ2")
+
+dev.off()
 ```
+
 The trace plots for $\beta_{i}'s, \tau_1, \tau_2$ show the chains fluctuating around a stable mean with no visible trends over the 50000 iterations (index). This suggests that the Gibbs sampler has reached a stationary distribution and achieved convergence.
 
 ### ii. Comparing the samples
