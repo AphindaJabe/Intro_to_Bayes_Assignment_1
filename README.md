@@ -42,13 +42,10 @@ This section extends Bayesian linear regression to accommodate outliers through 
 ├── code/
 │   └── Bayes Assignment 1.qmd
 │
-├── data/
-│   └── auto_mpg_data.csv
-│
 ├── report/
 │   └── Bayes_Assignment_1.pdf
 │
-├── images/
+├── plots/
 │   ├── trace_plots.pdf
 │   ├── trace_plots2.pdf
 │   ├── beta_densities.pdf
